@@ -111,6 +111,11 @@ impl<'a> CPU<'a> {
 
             let op = self.memory.read8(pc);
             let ucode = opcode::decode_instruction(op);
+            // println!(
+            //     "opcode: {} [{:02x}]",
+            //     opcode::decode_instruction_to_string(op),
+            //     op
+            // );
 
             self.ctx = Context::new();
             self.index = 0;

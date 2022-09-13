@@ -1,5 +1,6 @@
 use crate::cpu::CPU;
 use crate::registers::Register;
+use crate::utility;
 
 #[derive(Clone, Copy)]
 pub struct Context {
@@ -53,8 +54,6 @@ pub enum MicroOp {
     EmptyNoCycle,
     /// Loads the byte at the address in the PC register then increments it by one (1 cycle)
     LoadIncrPC,
-    /// Loads the byte at the address in the PC register then increments it by one. data is discarded (1 cycle)
-    LoadDropIncrPC,
     /// Pops a value off the context and stores it at the address pointed to by SP. Then decrement SP by one (1 cycle)
     StoreDecrSP,
     /// Increments the SP by one, then loads the value at the new address and pushes it onto the context stack (1 cycle)
@@ -109,12 +108,6 @@ impl MicroOp {
                 let pc = cpu.registers.pc.get();
                 let value = cpu.memory.read8(pc);
                 ctx.push(value);
-                cpu.registers.pc.set(pc + 1);
-                return 1;
-            }
-            MicroOp::LoadDropIncrPC => {
-                let pc = cpu.registers.pc.get();
-                cpu.memory.read8(pc);
                 cpu.registers.pc.set(pc + 1);
                 return 1;
             }
@@ -264,7 +257,7 @@ pub fn ucode_reset() -> &'static [MicroOp] {
 macro_rules! single_byte_implied {
     ($func: ident) => {
         &[
-            MicroOp::LoadDropIncrPC, // ignore next byte
+            MicroOp::EmptyCycle, // pause
             MicroOp::Execute($func),
         ]
     };
@@ -274,8 +267,8 @@ pub(crate) use single_byte_implied;
 macro_rules! single_byte_accumulator {
     ($func: ident) => {
         &[
-            MicroOp::LoadDropIncrPC, // ignore next byte
-            MicroOp::PushAcc,        // push acc as data
+            MicroOp::EmptyCycle, // pause
+            MicroOp::PushAcc,    // push acc as data
             MicroOp::Execute($func),
         ]
     };
@@ -683,7 +676,7 @@ pub(crate) use load_store_absolute_x;
 macro_rules! push_implied {
     ($func: ident) => {
         &[
-            MicroOp::LoadDropIncrPC, // ignore next byte
+            MicroOp::EmptyCycle,     // pause
             MicroOp::Execute($func), //
             MicroOp::StoreDecrSP,    // store data
         ]
@@ -694,7 +687,7 @@ pub(crate) use push_implied;
 macro_rules! pull_implied {
     ($func: ident) => {
         &[
-            MicroOp::LoadDropIncrPC, // ignore next byte
+            MicroOp::EmptyCycle,     // pause
             MicroOp::EmptyCycle,     // pause
             MicroOp::IncrLoadSP,     // fetch data from stack
             MicroOp::Execute($func), //
@@ -730,7 +723,7 @@ pub(crate) use jump_to_subroutine_absolute;
 macro_rules! return_from_subroutine_implied {
     ($func: ident) => {
         &[
-            MicroOp::LoadDropIncrPC, // ignore next byte
+            MicroOp::EmptyCycle,     // pause
             MicroOp::EmptyCycle,     // pause
             MicroOp::IncrLoadSP,     // pull PCL from stack
             MicroOp::PopTemp,        // temp = PCL
@@ -748,7 +741,7 @@ pub(crate) use return_from_subroutine_implied;
 macro_rules! return_from_interrupt_implied {
     ($func: ident) => {
         &[
-            MicroOp::LoadDropIncrPC, // ignore next byte
+            MicroOp::EmptyCycle,     // pause
             MicroOp::EmptyCycle,     // pause
             MicroOp::IncrLoadSP,     // pull P from stack
             MicroOp::IncrLoadSP,     // pull PCL from stack
@@ -804,38 +797,52 @@ macro_rules! branch_relative {
             MicroOp::Execute($func), //
             MicroOp::Evaluate(|cpu, ctx| {
                 let result = ctx.pop();
-                let offset = ctx.pop();
+                let offset = ctx.pop() as i8;
+                ctx.temp.set(result);
 
                 if result == 0 {
                     // skip if branch not taken
                     return MicroOp::EmptyNoCycle;
                 }
 
-                ctx.temp.set(cpu.registers.pc.get_lo_byte());
-                let (lo, carry) = ctx.temp.safe_add(offset);
-                let hi = cpu.registers.pc.get_hi_byte();
+                let pcl = cpu.registers.pc.get_lo_byte();
+                let pch = cpu.registers.pc.get_hi_byte();
 
-                if carry {
+                let lo: u8;
+                let overflow: bool;
+                if offset >= 0 {
+                    (lo, overflow) = pcl.overflowing_add(offset as u8);
+                } else {
+                    (lo, overflow) = pcl.overflowing_sub(offset.unsigned_abs());
+                }
+
+                if overflow {
                     // branch crosses page boundary
-                    ctx.push(lo + (carry as u8));
+                    let hi = pch.wrapping_add(overflow as u8);
+                    ctx.push(lo);
                     ctx.push(hi);
-                    ctx.temp.set(1);
                     return MicroOp::EmptyCycle; // pause
                 }
 
                 // branch doesnt cross page boundary
                 ctx.push(lo);
-                ctx.push(hi);
-                ctx.temp.set(0);
-                return MicroOp::EmptyNoCycle;
+                ctx.push(pch);
+                return MicroOp::PopJump;
             }),
             MicroOp::Evaluate(|_, ctx| {
                 if ctx.temp.get() == 0 {
+                    // branch was skipped
+                    return MicroOp::EmptyNoCycle;
+                } else if ctx.size() == 0 {
+                    // branch was taken but since it didn't cross a page
+                    // boundary the previous micro-op already jumped to
+                    // the offset
                     return MicroOp::EmptyNoCycle;
                 }
-                return MicroOp::EmptyCycle;
+
+                // the branch was taken and it crossed a page boundary
+                return MicroOp::PopJump;
             }),
-            MicroOp::PopJump,
         ]
     };
 }

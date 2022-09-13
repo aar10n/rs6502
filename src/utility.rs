@@ -1,28 +1,22 @@
-pub mod internal {
-    macro_rules! bitset_bits_impl {
-        ($vis:tt, $typename:tt, $type:tt, $bit:literal : $name_lower:ident => $name_upper:ident; $($rest:tt)*) => {
-            $vis const $name_upper: $type = 1 << $bit;
+use num_traits::ops::overflowing::{OverflowingAdd, OverflowingSub};
 
-            paste::paste! {
-                $vis fn [<get_ $name_lower>](&self) -> bool {
-                    (self.0 & (1 << $bit)) != 0
-                }
-
-                $vis fn [<with_ $name_lower>](&self, value: bool) -> Self {
-                    if value {
-                        Self { 0: self.0 | Self::$name_upper } // set
-                    } else {
-                        Self { 0: self.0 & !Self::$name_upper } // clear
-                    }
-                }
-            }
-
-            $crate::utility::internal::bitset_bits_impl!($vis, $typename, $type, $($rest)*);
-        };
-        ($($rest:tt)*) => {};
-    }
-    pub(crate) use bitset_bits_impl;
+pub fn borrowing_add<T: OverflowingAdd + From<bool>>(lhs: T, rhs: T, borrow: bool) -> (T, bool) {
+    let _borrow = T::from(borrow);
+    let (a, b) = lhs.overflowing_add(&rhs);
+    let (c, d) = a.overflowing_add(&_borrow);
+    return (c, b | d);
 }
+
+pub fn borrowing_sub<T: OverflowingSub + From<bool>>(lhs: T, rhs: T, borrow: bool) -> (T, bool) {
+    let _borrow = T::from(borrow);
+    let (a, b) = lhs.overflowing_sub(&rhs);
+    let (c, d) = a.overflowing_sub(&_borrow);
+    return (c, b | d);
+}
+
+//
+// Macros
+//
 
 /// Bitset provides a convinient way to define bit flags represented
 /// by an unsigned numeric type.
@@ -111,3 +105,33 @@ macro_rules! overline {
     };
 }
 pub(crate) use overline;
+
+//
+// Internal
+//
+
+pub mod internal {
+    macro_rules! bitset_bits_impl {
+        ($vis:tt, $typename:tt, $type:tt, $bit:literal : $name_lower:ident => $name_upper:ident; $($rest:tt)*) => {
+            $vis const $name_upper: $type = 1 << $bit;
+
+            paste::paste! {
+                $vis fn [<get_ $name_lower>](&self) -> bool {
+                    (self.0 & (1 << $bit)) != 0
+                }
+
+                $vis fn [<with_ $name_lower>](&self, value: bool) -> Self {
+                    if value {
+                        Self { 0: self.0 | Self::$name_upper } // set
+                    } else {
+                        Self { 0: self.0 & !Self::$name_upper } // clear
+                    }
+                }
+            }
+
+            $crate::utility::internal::bitset_bits_impl!($vis, $typename, $type, $($rest)*);
+        };
+        ($($rest:tt)*) => {};
+    }
+    pub(crate) use bitset_bits_impl;
+}

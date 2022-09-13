@@ -30,6 +30,7 @@ impl Memory {
         let mut buffer = Vec::new();
         rom.read_to_end(&mut buffer)?;
         (&mut self.data[addr..(addr + buffer.len())]).copy_from_slice(&buffer);
+        println!("loaded {} bytes at address ${:04x}", buffer.len(), addr);
         return Ok(());
     }
 

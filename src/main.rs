@@ -14,24 +14,25 @@ use memory::Memory;
 
 fn run() -> Result<(), Box<dyn Error>> {
     let mut mem = Memory::new();
-    let mut rom = fs::File::open("example/hello.o")?;
+    let mut rom = fs::File::open("example/fib.o")?;
     mem.load_rom(0x1000, &mut rom)?;
     mem.write16(CPU::RES_VECTOR, 0x1000);
 
+    // set N for fibonacci subroutine
+    let n = 11;
+    mem.write8(0x99, n);
+
     let mut cpu = CPU::new(&mut mem);
     cpu.reset();
-    cpu.step_instruction();
-    cpu.step_instruction();
-    cpu.step_instruction();
-    cpu.step_instruction();
-    cpu.step_instruction();
-    cpu.step_instruction();
+    for _ in 0..1000 {
+        cpu.step_instruction();
+        if cpu.status.get_decimal_mode() {
+            break;
+        }
+    }
 
-    println!("{:?}", cpu);
-
-    println!("0x200 -> {:02x}", mem.read8(0x200));
-    println!("0x201 -> {:02x}", mem.read8(0x201));
-    println!("0x202 -> {:02x}", mem.read8(0x202));
+    println!("{:?}\n", cpu);
+    println!("fib({}) = {}", n, mem.read8(0x104));
 
     return Ok(());
 }

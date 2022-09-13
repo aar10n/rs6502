@@ -1,19 +1,9 @@
 use crate::cpu::CPU;
 use crate::microcode::Context;
 use crate::registers::StatusFlags;
+use crate::utility;
 
 struct Value(u8, StatusFlags);
-
-// pub const fn carrying_add(self, rhs: Self, carry: bool) -> (Self, bool) {
-//     let (sum, carry) = (self as $UnsignedT).carrying_add(rhs as $UnsignedT, carry);
-//     (sum as $SelfT, carry)
-// }
-
-// note: longer-term this should be done via an intrinsic, but this has been shown
-// //   to generate optimal code for now, and LLVM doesn't have an equivalent intrinsic
-// let (a, b) = self.overflowing_sub(rhs);
-// let (c, d) = a.overflowing_sub(borrow as $SelfT);
-// (c, b | d)
 
 impl Value {
     fn new(value: u8, status: StatusFlags) -> Self {
@@ -27,41 +17,28 @@ impl Value {
     fn safe_add(self, rhs: u8) -> Self {
         let Value(lhs, status) = self;
 
-        let (result, carry) = lhs.overflowing_add(rhs);
-        return Value(result, status.with_carry(carry));
+        let (result, b) = lhs.overflowing_add(rhs);
+        return Value(result, status.with_carry(b));
     }
 
     fn safe_sub(self, rhs: u8) -> Self {
         let Value(lhs, status) = self;
 
-        let (result, overflow) = (lhs as i8).overflowing_sub(rhs as i8);
-        return Value(result as u8, status.with_overflow(overflow));
+        let (result, b) = (lhs as i8).overflowing_sub(rhs as i8);
+        return Value(result as u8, status.with_overflow(b));
     }
 
     fn carrying_add(self, rhs: u8) -> Self {
         let Value(lhs, status) = self;
-        let carry = status.get_carry() as u8;
-
-        let (a, b) = lhs.overflowing_add(rhs);
-        let (c, d) = a.overflowing_add(carry);
-
-        return Value(c, status.with_carry(b | d));
+        let (result, carry) = utility::borrowing_add(lhs, rhs, status.get_carry());
+        return Value(result, status.with_carry(carry));
     }
 
     fn borrowing_sub(self, rhs: u8) -> Self {
         let Value(lhs, status) = self;
-        let borrow = !status.get_carry() as i8; // invert carry
-
-        let (a, b) = (lhs as i8).overflowing_sub(rhs as i8);
-        let (c, d) = a.overflowing_sub(borrow);
-
-        return Value(c as u8, status.with_overflow(b | d));
-    }
-
-    fn update<F: Fn(u8, StatusFlags) -> (u8, StatusFlags)>(self, f: F) -> Self {
-        let Value(value, status) = self;
-        let (new_value, new_status) = f(value, status);
-        return Value(new_value, new_status);
+        let borrow = !status.get_carry(); // invert carry
+        let (result, overflow) = utility::borrowing_sub(lhs as i8, rhs as i8, borrow);
+        return Value(result as u8, status.with_overflow(overflow));
     }
 
     fn update_value<F: Fn(u8) -> u8>(self, f: F) -> Self {

@@ -338,3 +338,13 @@ pub fn decode_instruction(opcode: u8) -> &'static [MicroOp] {
 
     return &OPCODES[opcode as usize].ucode.unwrap();
 }
+
+pub fn decode_instruction_to_string(opcode: u8) -> &'static str {
+    let decoded = &OPCODES[opcode as usize];
+    if decoded.ucode.is_none() {
+        // invalid instruction
+        panic!("invalid opcode")
+    }
+
+    return &OPCODES[opcode as usize].mnemonic;
+}
