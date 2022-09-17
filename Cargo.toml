@@ -8,4 +8,4 @@ edition = "2021"
 [dependencies]
 paste = "1.0"
 num-traits = "0.2"
-
+intervaltree = "0.2.7"

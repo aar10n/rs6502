@@ -1,6 +1,5 @@
 use crate::cpu::CPU;
 use crate::registers::Register;
-use crate::utility;
 
 #[derive(Clone, Copy)]
 pub struct Context {
@@ -106,7 +105,7 @@ impl MicroOp {
             }
             MicroOp::LoadIncrPC => {
                 let pc = cpu.registers.pc.get();
-                let value = cpu.memory.read8(pc);
+                let value = cpu.bus.borrow_mut().read(pc);
                 ctx.push(value);
                 cpu.registers.pc.set(pc + 1);
                 return 1;
@@ -115,7 +114,7 @@ impl MicroOp {
                 let sp = cpu.registers.sp.get();
                 let address = u16::from_le_bytes([00, sp]);
                 let value = ctx.pop();
-                cpu.memory.write8(address, value);
+                cpu.bus.borrow_mut().write(address, value);
                 cpu.registers.sp.set(sp - 1);
                 return 1;
             }
@@ -123,7 +122,7 @@ impl MicroOp {
                 let sp = cpu.registers.sp.get() + 1;
                 let address = u16::from_le_bytes([00, sp]);
                 cpu.registers.sp.set(sp);
-                let value = cpu.memory.read8(address);
+                let value = cpu.bus.borrow_mut().read(address);
                 ctx.push(value);
                 return 1;
             }
@@ -161,7 +160,7 @@ impl MicroOp {
                 let lo = ctx.pop();
 
                 let address = u16::from_le_bytes([lo, hi]);
-                let value = cpu.memory.read8(address);
+                let value = cpu.bus.borrow_mut().read(address);
                 ctx.push(value);
                 return 1;
             }
@@ -170,7 +169,7 @@ impl MicroOp {
                 let lo = ctx.peek(1);
 
                 let address = u16::from_le_bytes([lo, hi]);
-                let value = cpu.memory.read8(address);
+                let value = cpu.bus.borrow_mut().read(address);
                 ctx.push(value);
                 return 1;
             }
@@ -180,7 +179,7 @@ impl MicroOp {
                 let lo = ctx.pop();
 
                 let address = u16::from_le_bytes([lo, hi]);
-                cpu.memory.write8(address, value);
+                cpu.bus.borrow_mut().write(address, value);
                 return 1;
             }
 

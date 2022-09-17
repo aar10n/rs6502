@@ -1,52 +1,18 @@
-use crate::memory::Memory;
+use std::cell::RefCell;
+use std::rc::Rc;
+
+use crate::bus::Bus;
 use crate::microcode::{ucode_reset, Context, MicroOp};
 use crate::opcode;
 use crate::registers::{Registers, StatusFlags};
 use crate::utility;
 
-utility::bitset! {
-    #[derive(Clone, Copy)]
-    pub struct Pins(u8);
-
-    0 : irq  => IRQ;
-    1 : rdy  => RDY;
-    2 : ml   => ML;
-    3 : nmi  => NMI;
-    4 : sync => SYNC;
-    5 : res  => RES;
-}
-
-impl std::fmt::Debug for Pins {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let string = utility::multiline! {
-            "Pins:"
-            "{}={}\n{}={}\n{}={}"
-            "{}={}\n{}={}\n{}={}"
-        };
-
-        #[rustfmt::skip]
-        return write!(
-            f,
-            utility::multiline! {
-                "Pins:"
-                "{}={}\n{}={}\n{}={}"
-                "{}={}\n{}={}\n{}={}"
-            },
-            utility::overline!('I''R''Q'), self.get_irq(),
-            "RDY", self.get_rdy(),
-            "ML", self.get_ml(),
-            utility::overline!('N''M''I'), self.get_nmi(),
-            "SYNC", self.get_sync(),
-            utility::overline!('R''E''S'), self.get_res(),
-        );
-    }
-}
-
-pub struct CPU<'a> {
+pub struct CPU<'a, 'b> {
     pub registers: Registers,
     pub status: StatusFlags,
     pub pins: Pins,
-    pub memory: &'a mut Memory,
+
+    pub bus: Rc<RefCell<&'a mut Bus<'b>>>,
 
     cycle: u64,
     index: usize,
@@ -54,17 +20,17 @@ pub struct CPU<'a> {
     pipeline: Option<&'static [MicroOp]>,
 }
 
-impl<'a> CPU<'a> {
+impl<'a, 'b> CPU<'a, 'b> {
     pub const NMI_VECTOR: u16 = 0xFFFA;
     pub const RES_VECTOR: u16 = 0xFFFC;
     pub const IRQ_VECTOR: u16 = 0xFFFE;
 
-    pub fn new(memory: &'a mut Memory) -> Self {
+    pub fn new(bus: &'a mut Bus<'b>) -> Self {
         Self {
             registers: Registers::new(),
             status: StatusFlags::new(),
             pins: Pins::from(Pins::IRQ | Pins::NMI | Pins::SYNC),
-            memory,
+            bus: Rc::new(bus.into()),
 
             cycle: 0,
             index: 0,
@@ -89,7 +55,7 @@ impl<'a> CPU<'a> {
 
     pub fn step_instruction(&mut self) {
         if self.pipeline.is_none() {
-            self.cycle(); // fetch next instruction
+            self.step_cycle(); // fetch next instruction
         }
 
         while self.pipeline.is_some() {
@@ -103,13 +69,13 @@ impl<'a> CPU<'a> {
 
     //
 
-    fn cycle(&mut self) {
+    fn cycle<'c>(&'c mut self) {
         if self.pipeline.is_none() {
             // fetch & decode next instruction
             let pc = self.registers.pc.get();
             self.registers.pc.set(pc + 1); // increment pc
 
-            let op = self.memory.read8(pc);
+            let op = self.bus.borrow().read(pc);
             let ucode = opcode::decode_instruction(op);
             // println!(
             //     "opcode: {} [{:02x}]",
@@ -152,13 +118,45 @@ impl<'a> CPU<'a> {
     }
 }
 
-impl<'a> std::fmt::Debug for CPU<'a> {
+impl<'a, 'b> std::fmt::Debug for CPU<'a, 'b> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         return write!(
             f,
             "{:?}\n\n{:?}",
             self.registers,
             self.status, // self.pins
+        );
+    }
+}
+
+utility::bitset! {
+    #[derive(Clone, Copy)]
+    pub struct Pins(u8);
+
+    0 : irq  => IRQ;
+    1 : rdy  => RDY;
+    2 : ml   => ML;
+    3 : nmi  => NMI;
+    4 : sync => SYNC;
+    5 : res  => RES;
+}
+
+impl std::fmt::Debug for Pins {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        #[rustfmt::skip]
+        return write!(
+            f,
+            utility::multiline! {
+                "Pins:"
+                "{}={}\n{}={}\n{}={}"
+                "{}={}\n{}={}\n{}={}"
+            },
+            utility::overline!('I''R''Q'), self.get_irq(),
+            "RDY", self.get_rdy(),
+            "ML", self.get_ml(),
+            utility::overline!('N''M''I'), self.get_nmi(),
+            "SYNC", self.get_sync(),
+            utility::overline!('R''E''S'), self.get_res(),
         );
     }
 }
