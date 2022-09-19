@@ -1,18 +1,18 @@
 use std::cell::RefCell;
 use std::rc::Rc;
 
-use crate::bus::Bus;
 use crate::microcode::{ucode_reset, Context, MicroOp};
 use crate::opcode;
 use crate::registers::{Registers, StatusFlags};
 use crate::utility;
+use crate::Bus;
 
-pub struct CPU<'a, 'b> {
+type RcRefBox<T> = Rc<RefCell<Box<T>>>;
+
+pub struct CPU {
     pub registers: Registers,
     pub status: StatusFlags,
     pub pins: Pins,
-
-    pub bus: Rc<RefCell<&'a mut Bus<'b>>>,
 
     cycle: u64,
     index: usize,
@@ -20,17 +20,16 @@ pub struct CPU<'a, 'b> {
     pipeline: Option<&'static [MicroOp]>,
 }
 
-impl<'a, 'b> CPU<'a, 'b> {
+impl CPU {
     pub const NMI_VECTOR: u16 = 0xFFFA;
     pub const RES_VECTOR: u16 = 0xFFFC;
     pub const IRQ_VECTOR: u16 = 0xFFFE;
 
-    pub fn new(bus: &'a mut Bus<'b>) -> Self {
+    pub fn new() -> Self {
         Self {
             registers: Registers::new(),
             status: StatusFlags::new(),
             pins: Pins::from(Pins::IRQ | Pins::NMI | Pins::SYNC),
-            bus: Rc::new(bus.into()),
 
             cycle: 0,
             index: 0,
@@ -39,7 +38,7 @@ impl<'a, 'b> CPU<'a, 'b> {
         }
     }
 
-    pub fn reset(&mut self) {
+    pub fn reset(&mut self, bus: &mut dyn Bus) {
         self.cycle = 0;
         self.index = 0;
         self.ctx = Context::new();
@@ -48,34 +47,34 @@ impl<'a, 'b> CPU<'a, 'b> {
         let mut ctx = Context::new();
         let ops = ucode_reset();
         for op in ops {
-            let cycle = op.execute(self, &mut ctx);
+            let cycle = op.execute(self, &mut ctx, bus);
             self.cycle += cycle as u64;
         }
     }
 
-    pub fn step_instruction(&mut self) {
+    pub fn step_instruction(&mut self, bus: &mut dyn Bus) {
         if self.pipeline.is_none() {
-            self.step_cycle(); // fetch next instruction
+            self.step_cycle(bus); // fetch next instruction
         }
 
         while self.pipeline.is_some() {
-            self.step_cycle();
+            self.step_cycle(bus);
         }
     }
 
-    pub fn step_cycle(&mut self) {
-        self.cycle();
+    pub fn step_cycle(&mut self, bus: &mut dyn Bus) {
+        self.cycle(bus);
     }
 
     //
 
-    fn cycle<'c>(&'c mut self) {
+    fn cycle(&mut self, bus: &mut dyn Bus) {
         if self.pipeline.is_none() {
             // fetch & decode next instruction
             let pc = self.registers.pc.get();
             self.registers.pc.set(pc + 1); // increment pc
 
-            let op = self.bus.borrow().read(pc);
+            let op = bus.read(pc);
             let ucode = opcode::decode_instruction(op);
             // println!(
             //     "opcode: {} [{:02x}]",
@@ -99,7 +98,7 @@ impl<'a, 'b> CPU<'a, 'b> {
             let cycle: u8;
             unsafe {
                 let ctx = &mut self.ctx as *mut _;
-                cycle = uop.execute(self, &mut *ctx);
+                cycle = uop.execute(self, &mut *ctx, bus);
             }
 
             if self.index >= pipeline.len() {
@@ -118,7 +117,7 @@ impl<'a, 'b> CPU<'a, 'b> {
     }
 }
 
-impl<'a, 'b> std::fmt::Debug for CPU<'a, 'b> {
+impl std::fmt::Debug for CPU {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         return write!(
             f,

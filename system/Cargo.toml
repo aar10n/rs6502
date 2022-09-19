@@ -1,17 +1,12 @@
 [package]
-name = "rs6502"
+name = "system"
 version = "0.1.0"
 edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-paste = "1.0"
-num-traits = "0.2"
 intervaltree = "0.2.7"
 
-[workspace]
 [dependencies.core]
-path = "core"
-[dependencies.system]
-path = "system"
+path = "../core"

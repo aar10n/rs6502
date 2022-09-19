@@ -1,5 +1,6 @@
 use crate::cpu::CPU;
 use crate::registers::Register;
+use crate::Bus;
 
 #[derive(Clone, Copy)]
 pub struct Context {
@@ -90,7 +91,7 @@ pub enum MicroOp {
 }
 
 impl MicroOp {
-    pub fn execute(self, cpu: &mut CPU, ctx: &mut Context) -> u8 {
+    pub fn execute(self, cpu: &mut CPU, ctx: &mut Context, bus: &mut dyn Bus) -> u8 {
         match self {
             MicroOp::Unimplemented => {
                 panic!("instruction unimplemented");
@@ -105,7 +106,7 @@ impl MicroOp {
             }
             MicroOp::LoadIncrPC => {
                 let pc = cpu.registers.pc.get();
-                let value = cpu.bus.borrow_mut().read(pc);
+                let value = bus.read(pc);
                 ctx.push(value);
                 cpu.registers.pc.set(pc + 1);
                 return 1;
@@ -114,7 +115,7 @@ impl MicroOp {
                 let sp = cpu.registers.sp.get();
                 let address = u16::from_le_bytes([00, sp]);
                 let value = ctx.pop();
-                cpu.bus.borrow_mut().write(address, value);
+                bus.write(address, value);
                 cpu.registers.sp.set(sp - 1);
                 return 1;
             }
@@ -122,7 +123,7 @@ impl MicroOp {
                 let sp = cpu.registers.sp.get() + 1;
                 let address = u16::from_le_bytes([00, sp]);
                 cpu.registers.sp.set(sp);
-                let value = cpu.bus.borrow_mut().read(address);
+                let value = bus.read(address);
                 ctx.push(value);
                 return 1;
             }
@@ -160,7 +161,7 @@ impl MicroOp {
                 let lo = ctx.pop();
 
                 let address = u16::from_le_bytes([lo, hi]);
-                let value = cpu.bus.borrow_mut().read(address);
+                let value = bus.read(address);
                 ctx.push(value);
                 return 1;
             }
@@ -169,7 +170,7 @@ impl MicroOp {
                 let lo = ctx.peek(1);
 
                 let address = u16::from_le_bytes([lo, hi]);
-                let value = cpu.bus.borrow_mut().read(address);
+                let value = bus.read(address);
                 ctx.push(value);
                 return 1;
             }
@@ -179,7 +180,7 @@ impl MicroOp {
                 let lo = ctx.pop();
 
                 let address = u16::from_le_bytes([lo, hi]);
-                cpu.bus.borrow_mut().write(address, value);
+                bus.write(address, value);
                 return 1;
             }
 
@@ -211,7 +212,7 @@ impl MicroOp {
             }
             MicroOp::Evaluate(function) => {
                 let op = function(cpu, ctx);
-                return op.execute(cpu, ctx);
+                return op.execute(cpu, ctx, bus);
             }
         }
     }
