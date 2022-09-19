@@ -1,13 +1,8 @@
-use std::cell::RefCell;
-use std::rc::Rc;
-
 use crate::microcode::{ucode_reset, Context, MicroOp};
 use crate::opcode;
 use crate::registers::{Registers, StatusFlags};
 use crate::utility;
 use crate::Bus;
-
-type RcRefBox<T> = Rc<RefCell<Box<T>>>;
 
 pub struct CPU {
     pub registers: Registers,

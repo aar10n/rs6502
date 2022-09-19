@@ -1,4 +1,5 @@
 use crate::utility::bitset;
+
 use num_traits;
 
 #[derive(Clone, Copy)]

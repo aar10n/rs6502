@@ -2,19 +2,22 @@ use std::error::Error;
 use std::fs;
 
 use core::CPU;
-use system::{Bus, Memory};
+use system::{device::StdoutDevice, Bus, Memory};
 
 fn run() -> Result<(), Box<dyn Error>> {
+    let mut stdout = StdoutDevice::new();
     let mut mem = Memory::new();
+    mem.register_device(&mut stdout);
 
-    let mut rom = fs::File::open("example/fib.o")?;
+    let mut rom = fs::File::open("example/hello.o")?;
+    // let mut rom = fs::File::open("example/fib.o")?;
     mem.load_rom(0x1000, &mut rom)?;
     mem.write(CPU::RES_VECTOR, 0x00);
     mem.write(CPU::RES_VECTOR + 1, 0x10);
 
-    // set N for fibonacci subroutine
-    let n = 11;
-    mem.write(0x99, n);
+    // // set N for fibonacci subroutine
+    // let n = 11;
+    // mem.write(0x99, n);
 
     let mut cpu = CPU::new();
     cpu.reset(&mut mem);
@@ -33,7 +36,7 @@ fn run() -> Result<(), Box<dyn Error>> {
     let elapsed = end - start;
 
     println!("{:?}\n", cpu);
-    println!("fib({}) = {}", n, mem.read(0x104));
+    // println!("fib({}) = {}", n, mem.read(0x104));
     println!("took {} us", elapsed.as_micros());
     return Ok(());
 }

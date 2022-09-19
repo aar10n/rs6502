@@ -7,20 +7,20 @@ use std::{cell::RefCell, iter::FromIterator, rc::Rc};
 use core::Bus;
 use intervaltree::{Element, IntervalTree};
 
-use crate::Device;
+use crate::device::Device;
 
 type RcRefBox<T> = Rc<RefCell<Box<T>>>;
 
 pub struct Memory<'a> {
     size: usize,
     data: Vec<u8>,
-    devices: Vec<(Range<u16>, RcRefBox<dyn Device + 'a>)>,
-    mapped: IntervalTree<u16, RcRefBox<dyn Device + 'a>>,
+    devices: Vec<(Range<u16>, RcRefBox<&'a mut (dyn Device + 'a)>)>,
+    mapped: IntervalTree<u16, RcRefBox<&'a mut (dyn Device + 'a)>>,
 }
 
 impl<'a> Memory<'a> {
     pub fn new() -> Self {
-        let iter = std::iter::empty::<Element<u16, RcRefBox<dyn Device>>>();
+        let iter = std::iter::empty::<Element<u16, RcRefBox<&mut dyn Device>>>();
         let size = usize::from(u16::MAX);
         Self {
             size,
@@ -48,14 +48,17 @@ impl<'a> Memory<'a> {
         return Ok(());
     }
 
-    pub fn register_device(&mut self, device: impl Device + 'a, range: Range<u16>) {
-        let iter = self.mapped.query(range.clone());
+    pub fn register_device(&mut self, device: &'a mut (impl Device + 'a)) {
+        // device.get_range()
+
+        let iter = self.mapped.query(device.get_range().into());
         if iter.peekable().peek().is_some() {
             panic!("requested range overlaps with an existing device");
         }
 
-        let boxed: RcRefBox<dyn Device + 'a> = Rc::new(RefCell::new(Box::new(device)));
-        self.devices.push((range, boxed));
+        let range = device.get_range();
+        self.devices
+            .push((range.into(), Rc::new(RefCell::new(Box::new(device)))));
         self.mapped = IntervalTree::from_iter(self.devices.iter_mut().map(|t| Element {
             range: t.0.clone(),
             value: Rc::clone(&t.1),
@@ -64,7 +67,7 @@ impl<'a> Memory<'a> {
 
     //
 
-    fn get_device_or_none(&self, address: u16) -> Option<RcRefBox<dyn Device + 'a>> {
+    fn get_device_or_none(&self, address: u16) -> Option<RcRefBox<&'a mut (dyn Device + 'a)>> {
         let range = Range {
             start: address,
             end: address + 1,
