@@ -1,0 +1,12 @@
+[package]
+name = "asm"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+indoc = "1.0.7"
+logos = "0.12.1"
+colored = "2.0.0"
+ansi_term = "0.12.1"
+atty = "0.2.14"
+lazy_static = "1.4.0"
