@@ -1,4 +1,4 @@
-use crate::cpu::CPU;
+use crate::cpu::Cpu;
 use crate::microcode::Context;
 use crate::registers::StatusFlags;
 use crate::utility;
@@ -109,7 +109,7 @@ impl Value {
 /// Absolute,Y   | 0x79   | 3     | 4 (+1)
 /// (Indirect,X) | 0x61   | 2     | 6
 /// (Indirect),Y | 0x71   | 2     | 5 (+1)
-pub fn adc_impl(cpu: &mut CPU, ctx: &mut Context) {
+pub fn adc_impl(cpu: &mut Cpu, ctx: &mut Context) {
     let acc = cpu.registers.acc.get();
     let value = ctx.pop();
 
@@ -136,7 +136,7 @@ pub fn adc_impl(cpu: &mut CPU, ctx: &mut Context) {
 /// Absolute,Y   | 0x39   | 3     | 4 (+1)
 /// (Indirect,X) | 0x21   | 2     | 6
 /// (Indirect),Y | 0x31   | 2     | 5 (+1)
-pub fn and_impl(cpu: &mut CPU, ctx: &mut Context) {
+pub fn and_impl(cpu: &mut Cpu, ctx: &mut Context) {
     let acc = cpu.registers.acc.get();
     let value = ctx.pop();
 
@@ -160,7 +160,7 @@ pub fn and_impl(cpu: &mut CPU, ctx: &mut Context) {
 /// Zero Page,X  | 0x16   | 2     | 6
 /// Absolute     | 0x0E   | 3     | 6
 /// Absolute,X   | 0x1E   | 3     | 7
-pub fn asl_impl(cpu: &mut CPU, ctx: &mut Context) {
+pub fn asl_impl(cpu: &mut Cpu, ctx: &mut Context) {
     let value = ctx.pop();
     let carry = (value & 0x80) != 0;
 
@@ -182,7 +182,7 @@ pub fn asl_impl(cpu: &mut CPU, ctx: &mut Context) {
 /// address mode | opcode | bytes | cycles
 /// -------------+--------+-------+-------
 /// Relative     | 0x90   | 2     | 2 (+2)
-pub fn bcc_impl(cpu: &mut CPU, ctx: &mut Context) {
+pub fn bcc_impl(cpu: &mut Cpu, ctx: &mut Context) {
     ctx.push(!cpu.status.get_carry() as u8);
 }
 
@@ -193,7 +193,7 @@ pub fn bcc_impl(cpu: &mut CPU, ctx: &mut Context) {
 /// address mode | opcode | bytes | cycles
 /// -------------+--------+-------+-------
 /// Relative     | 0xB0   | 2     | 2 (+2)
-pub fn bcs_impl(cpu: &mut CPU, ctx: &mut Context) {
+pub fn bcs_impl(cpu: &mut Cpu, ctx: &mut Context) {
     ctx.push(cpu.status.get_carry() as u8);
 }
 
@@ -204,7 +204,7 @@ pub fn bcs_impl(cpu: &mut CPU, ctx: &mut Context) {
 /// address mode | opcode | bytes | cycles
 /// -------------+--------+-------+-------
 /// Relative     | 0xF0   | 2     | 2 (+2)
-pub fn beq_impl(cpu: &mut CPU, ctx: &mut Context) {
+pub fn beq_impl(cpu: &mut Cpu, ctx: &mut Context) {
     ctx.push(cpu.status.get_zero() as u8);
 }
 
@@ -216,7 +216,7 @@ pub fn beq_impl(cpu: &mut CPU, ctx: &mut Context) {
 /// -------------+--------+-------+-------
 /// Zero Page    | 0x24   | 2     | 3
 /// Absolute     | 0x2C   | 3     | 4
-pub fn bit_impl(cpu: &mut CPU, ctx: &mut Context) {
+pub fn bit_impl(cpu: &mut Cpu, ctx: &mut Context) {
     let acc = cpu.registers.acc.get();
     let value = ctx.pop();
 
@@ -240,7 +240,7 @@ pub fn bit_impl(cpu: &mut CPU, ctx: &mut Context) {
 /// address mode | opcode | bytes | cycles
 /// -------------+--------+-------+-------
 /// Relative     | 0x30   | 2     | 2
-pub fn bmi_impl(cpu: &mut CPU, ctx: &mut Context) {
+pub fn bmi_impl(cpu: &mut Cpu, ctx: &mut Context) {
     ctx.push(cpu.status.get_negative() as u8);
 }
 
@@ -251,7 +251,7 @@ pub fn bmi_impl(cpu: &mut CPU, ctx: &mut Context) {
 /// address mode | opcode | bytes | cycles
 /// -------------+--------+-------+-------
 /// Relative     | 0xD0   | 2     | 2
-pub fn bne_impl(cpu: &mut CPU, ctx: &mut Context) {
+pub fn bne_impl(cpu: &mut Cpu, ctx: &mut Context) {
     ctx.push(!cpu.status.get_zero() as u8);
 }
 
@@ -262,7 +262,7 @@ pub fn bne_impl(cpu: &mut CPU, ctx: &mut Context) {
 /// address mode | opcode | bytes | cycles
 /// -------------+--------+-------+-------
 /// Relative     | 0x10   | 2     | 2
-pub fn bpl_impl(cpu: &mut CPU, ctx: &mut Context) {
+pub fn bpl_impl(cpu: &mut Cpu, ctx: &mut Context) {
     ctx.push(!cpu.status.get_negative() as u8);
 }
 
@@ -271,7 +271,7 @@ pub fn bpl_impl(cpu: &mut CPU, ctx: &mut Context) {
 /// address mode | opcode | bytes | cycles
 /// -------------+--------+-------+-------
 /// Implied      | 0x00   | 1     | 7
-pub fn brk_impl(cpu: &mut CPU, ctx: &mut Context) {}
+pub fn brk_impl(cpu: &mut Cpu, ctx: &mut Context) {}
 
 /// BVC - Branch on Overflow Clear
 ///
@@ -280,7 +280,7 @@ pub fn brk_impl(cpu: &mut CPU, ctx: &mut Context) {}
 /// address mode | opcode | bytes | cycles
 /// -------------+--------+-------+-------
 /// Relative     | 0x50   | 2     | 2
-pub fn bvc_impl(cpu: &mut CPU, ctx: &mut Context) {
+pub fn bvc_impl(cpu: &mut Cpu, ctx: &mut Context) {
     ctx.push(!cpu.status.get_overflow() as u8);
 }
 
@@ -291,7 +291,7 @@ pub fn bvc_impl(cpu: &mut CPU, ctx: &mut Context) {
 /// address mode | opcode | bytes | cycles
 /// -------------+--------+-------+-------
 /// Relative     | 0x70   | 2     | 2
-pub fn bvs_impl(cpu: &mut CPU, ctx: &mut Context) {
+pub fn bvs_impl(cpu: &mut Cpu, ctx: &mut Context) {
     ctx.push(cpu.status.get_overflow() as u8);
 }
 
@@ -302,7 +302,7 @@ pub fn bvs_impl(cpu: &mut CPU, ctx: &mut Context) {
 /// address mode | opcode | bytes | cycles
 /// -------------+--------+-------+-------
 /// Implied      | 0x18   | 1     | 2
-pub fn clc_impl(cpu: &mut CPU, _: &mut Context) {
+pub fn clc_impl(cpu: &mut Cpu, _: &mut Context) {
     cpu.status.replace(cpu.status.with_carry(false));
 }
 
@@ -313,7 +313,7 @@ pub fn clc_impl(cpu: &mut CPU, _: &mut Context) {
 /// address mode | opcode | bytes | cycles
 /// -------------+--------+-------+-------
 /// Implied      | 0xD8   | 1     | 2
-pub fn cld_impl(cpu: &mut CPU, _: &mut Context) {
+pub fn cld_impl(cpu: &mut Cpu, _: &mut Context) {
     cpu.status.replace(cpu.status.with_decimal_mode(false));
 }
 
@@ -324,7 +324,7 @@ pub fn cld_impl(cpu: &mut CPU, _: &mut Context) {
 /// address mode | opcode | bytes | cycles
 /// -------------+--------+-------+-------
 /// Implied      | 0x58   | 1     | 2
-pub fn cli_impl(cpu: &mut CPU, _: &mut Context) {
+pub fn cli_impl(cpu: &mut Cpu, _: &mut Context) {
     cpu.status.replace(cpu.status.with_irq_disable(false));
 }
 
@@ -335,7 +335,7 @@ pub fn cli_impl(cpu: &mut CPU, _: &mut Context) {
 /// address mode | opcode | bytes | cycles
 /// -------------+--------+-------+-------
 /// Implied      | 0xB8   | 1     | 2
-pub fn clv_impl(cpu: &mut CPU, _: &mut Context) {
+pub fn clv_impl(cpu: &mut Cpu, _: &mut Context) {
     cpu.status.replace(cpu.status.with_overflow(false));
 }
 
@@ -353,7 +353,7 @@ pub fn clv_impl(cpu: &mut CPU, _: &mut Context) {
 /// Absolute,Y   | 0xD9   | 3     | 4
 /// (Indirect,X) | 0xC1   | 2     | 6
 /// (Indirect),Y | 0xD1   | 2     | 5
-pub fn cmp_impl(cpu: &mut CPU, ctx: &mut Context) {
+pub fn cmp_impl(cpu: &mut Cpu, ctx: &mut Context) {
     let acc = cpu.registers.acc.get();
     let value = ctx.pop();
 
@@ -374,7 +374,7 @@ pub fn cmp_impl(cpu: &mut CPU, ctx: &mut Context) {
 /// Immediate    | 0xE0   | 2     | 2
 /// Zero Page    | 0xE4   | 2     | 3
 /// Absolute     | 0xEC   | 3     | 4
-pub fn cpx_impl(cpu: &mut CPU, ctx: &mut Context) {
+pub fn cpx_impl(cpu: &mut Cpu, ctx: &mut Context) {
     let x = cpu.registers.x.get();
     let value = ctx.pop();
 
@@ -395,7 +395,7 @@ pub fn cpx_impl(cpu: &mut CPU, ctx: &mut Context) {
 /// Immediate    | 0xC0   | 2     | 2
 /// Zero Page    | 0xC4   | 2     | 3
 /// Absolute     | 0xCC   | 3     | 4
-pub fn cpy_impl(cpu: &mut CPU, ctx: &mut Context) {
+pub fn cpy_impl(cpu: &mut Cpu, ctx: &mut Context) {
     let y = cpu.registers.y.get();
     let value = ctx.pop();
 
@@ -417,7 +417,7 @@ pub fn cpy_impl(cpu: &mut CPU, ctx: &mut Context) {
 /// Zero Page,X  | 0xD6   | 2     | 6
 /// Absolute     | 0xCE   | 3     | 6
 /// Absolute,X   | 0xDE   | 3     | 7
-pub fn dec_impl(cpu: &mut CPU, ctx: &mut Context) {
+pub fn dec_impl(cpu: &mut Cpu, ctx: &mut Context) {
     let value = ctx.pop();
     let overflow = cpu.status.get_overflow();
 
@@ -438,7 +438,7 @@ pub fn dec_impl(cpu: &mut CPU, ctx: &mut Context) {
 /// address mode | opcode | bytes | cycles
 /// -------------+--------+-------+-------
 /// Implied      | 0xCA   | 1     | 2
-pub fn dex_impl(cpu: &mut CPU, _: &mut Context) {
+pub fn dex_impl(cpu: &mut Cpu, _: &mut Context) {
     let x = cpu.registers.x.get();
     let overflow = cpu.status.get_overflow();
 
@@ -459,7 +459,7 @@ pub fn dex_impl(cpu: &mut CPU, _: &mut Context) {
 /// address mode | opcode | bytes | cycles
 /// -------------+--------+-------+-------
 /// Implied      | 0x88   | 1     | 2
-pub fn dey_impl(cpu: &mut CPU, _: &mut Context) {
+pub fn dey_impl(cpu: &mut Cpu, _: &mut Context) {
     let y = cpu.registers.y.get();
     let overflow = cpu.status.get_overflow();
 
@@ -487,7 +487,7 @@ pub fn dey_impl(cpu: &mut CPU, _: &mut Context) {
 /// Absolute,Y   | 0x59   | 3     | 4
 /// (Indirect,X) | 0x41   | 2     | 6
 /// (Indirect),Y | 0x51   | 2     | 5
-pub fn eor_impl(cpu: &mut CPU, ctx: &mut Context) {
+pub fn eor_impl(cpu: &mut Cpu, ctx: &mut Context) {
     let acc = cpu.registers.acc.get();
     let value = ctx.pop();
 
@@ -510,7 +510,7 @@ pub fn eor_impl(cpu: &mut CPU, ctx: &mut Context) {
 /// Zero Page,X  | 0xF6   | 2     | 6
 /// Absolute     | 0xEE   | 3     | 6
 /// Absolute,X   | 0xFE   | 3     | 7
-pub fn inc_impl(cpu: &mut CPU, ctx: &mut Context) {
+pub fn inc_impl(cpu: &mut Cpu, ctx: &mut Context) {
     let value = ctx.pop();
     let carry = cpu.status.get_carry();
 
@@ -531,7 +531,7 @@ pub fn inc_impl(cpu: &mut CPU, ctx: &mut Context) {
 /// address mode | opcode | bytes | cycles
 /// -------------+--------+-------+-------
 /// Implied      | 0xE8   | 1     | 2
-pub fn inx_impl(cpu: &mut CPU, _: &mut Context) {
+pub fn inx_impl(cpu: &mut Cpu, _: &mut Context) {
     let x = cpu.registers.x.get();
     let carry = cpu.status.get_carry();
 
@@ -552,7 +552,7 @@ pub fn inx_impl(cpu: &mut CPU, _: &mut Context) {
 /// address mode | opcode | bytes | cycles
 /// -------------+--------+-------+-------
 /// Implied      | 0xC8   | 1     | 2
-pub fn iny_impl(cpu: &mut CPU, _: &mut Context) {
+pub fn iny_impl(cpu: &mut Cpu, _: &mut Context) {
     let y = cpu.registers.y.get();
     let carry = cpu.status.get_carry();
 
@@ -575,7 +575,7 @@ pub fn iny_impl(cpu: &mut CPU, _: &mut Context) {
 /// -------------+--------+-------+-------
 /// Absolute     | 0x4C   | 3     | 3
 /// Indirect     | 0x6C   | 3     | 5
-pub fn jmp_impl(_: &mut CPU, _: &mut Context) {}
+pub fn jmp_impl(_: &mut Cpu, _: &mut Context) {}
 
 /// JSR - Jump to New Location Saving Return Address
 ///
@@ -586,7 +586,7 @@ pub fn jmp_impl(_: &mut CPU, _: &mut Context) {}
 /// address mode | opcode | bytes | cycles
 /// -------------+--------+-------+-------
 /// Absolute     | 0x20   | 3     | 6
-pub fn jsr_impl(_: &mut CPU, _: &mut Context) {}
+pub fn jsr_impl(_: &mut Cpu, _: &mut Context) {}
 
 /// LDA - Load Accumulator with Memory
 ///
@@ -602,7 +602,7 @@ pub fn jsr_impl(_: &mut CPU, _: &mut Context) {}
 /// Absolute,Y   | 0xB9   | 3     | 4
 /// (Indirect,X) | 0xA1   | 2     | 6
 /// (Indirect),Y | 0xB1   | 2     | 5
-pub fn lda_impl(cpu: &mut CPU, ctx: &mut Context) {
+pub fn lda_impl(cpu: &mut Cpu, ctx: &mut Context) {
     let data = ctx.pop();
     cpu.registers.acc.set(data);
 }
@@ -618,7 +618,7 @@ pub fn lda_impl(cpu: &mut CPU, ctx: &mut Context) {
 /// Zero Page,Y  | 0xB6   | 2     | 4
 /// Absolute     | 0xAE   | 3     | 4
 /// Absolute,Y   | 0xBE   | 3     | 4
-pub fn ldx_impl(cpu: &mut CPU, ctx: &mut Context) {
+pub fn ldx_impl(cpu: &mut Cpu, ctx: &mut Context) {
     let data = ctx.pop();
     cpu.registers.x.set(data);
 }
@@ -634,7 +634,7 @@ pub fn ldx_impl(cpu: &mut CPU, ctx: &mut Context) {
 /// Zero Page,X  | 0xB4   | 2     | 4
 /// Absolute     | 0xAC   | 3     | 4
 /// Absolute,X   | 0xBC   | 3     | 4
-pub fn ldy_impl(cpu: &mut CPU, ctx: &mut Context) {
+pub fn ldy_impl(cpu: &mut Cpu, ctx: &mut Context) {
     let data = ctx.pop();
     cpu.registers.y.set(data);
 }
@@ -650,7 +650,7 @@ pub fn ldy_impl(cpu: &mut CPU, ctx: &mut Context) {
 /// Zero Page,X  | 0x56   | 2     | 6
 /// Absolute     | 0x4E   | 3     | 6
 /// Absolute,X   | 0x5E   | 3     | 7
-pub fn lsr_impl(cpu: &mut CPU, ctx: &mut Context) {
+pub fn lsr_impl(cpu: &mut Cpu, ctx: &mut Context) {
     let value = ctx.pop();
     let carry = (value & 0x1) != 0;
 
@@ -669,7 +669,7 @@ pub fn lsr_impl(cpu: &mut CPU, ctx: &mut Context) {
 /// address mode | opcode | bytes | cycles
 /// -------------+--------+-------+-------
 /// Implied      | 0xEA   | 1     | 2
-pub fn nop_impl(_: &mut CPU, _: &mut Context) {}
+pub fn nop_impl(_: &mut Cpu, _: &mut Context) {}
 
 /// ORA - "OR" Memory with Accumulator
 ///
@@ -685,7 +685,7 @@ pub fn nop_impl(_: &mut CPU, _: &mut Context) {}
 /// Absolute,Y   | 0x19   | 3     | 4
 /// (Indirect,X) | 0x01   | 2     | 6
 /// (Indirect),Y | 0x11   | 2     | 5
-pub fn ora_impl(cpu: &mut CPU, ctx: &mut Context) {
+pub fn ora_impl(cpu: &mut Cpu, ctx: &mut Context) {
     let acc = cpu.registers.acc.get();
     let value = ctx.pop();
 
@@ -705,7 +705,7 @@ pub fn ora_impl(cpu: &mut CPU, ctx: &mut Context) {
 /// address mode | opcode | bytes | cycles
 /// -------------+--------+-------+-------
 /// Implied      | 0x48   | 1     | 3
-pub fn pha_impl(cpu: &mut CPU, ctx: &mut Context) {
+pub fn pha_impl(cpu: &mut Cpu, ctx: &mut Context) {
     let acc = cpu.registers.acc.get();
     ctx.push(acc);
 }
@@ -717,7 +717,7 @@ pub fn pha_impl(cpu: &mut CPU, ctx: &mut Context) {
 /// address mode | opcode | bytes | cycles
 /// -------------+--------+-------+-------
 /// Implied      | 0x08   | 1     | 3
-pub fn php_impl(cpu: &mut CPU, ctx: &mut Context) {
+pub fn php_impl(cpu: &mut Cpu, ctx: &mut Context) {
     let status = cpu.status.get_raw();
     ctx.push(status);
 }
@@ -729,7 +729,7 @@ pub fn php_impl(cpu: &mut CPU, ctx: &mut Context) {
 /// address mode | opcode | bytes | cycles
 /// -------------+--------+-------+-------
 /// Implied      | 0x68   | 1     | 4
-pub fn pla_impl(cpu: &mut CPU, ctx: &mut Context) {
+pub fn pla_impl(cpu: &mut Cpu, ctx: &mut Context) {
     let acc = ctx.pop();
     cpu.registers.acc.set(acc);
 }
@@ -741,7 +741,7 @@ pub fn pla_impl(cpu: &mut CPU, ctx: &mut Context) {
 /// address mode | opcode | bytes | cycles
 /// -------------+--------+-------+-------
 /// Implied      | 0x28   | 1     | 4
-pub fn plp_impl(cpu: &mut CPU, ctx: &mut Context) {
+pub fn plp_impl(cpu: &mut Cpu, ctx: &mut Context) {
     let status = ctx.pop();
     cpu.status.set_raw(status);
 }
@@ -757,7 +757,7 @@ pub fn plp_impl(cpu: &mut CPU, ctx: &mut Context) {
 /// Zero Page,X  | 0x36   | 2     | 6
 /// Absolute     | 0x2E   | 3     | 6
 /// Absolute,X   | 0x3E   | 3     | 7
-pub fn rol_impl(cpu: &mut CPU, ctx: &mut Context) {
+pub fn rol_impl(cpu: &mut Cpu, ctx: &mut Context) {
     let value = ctx.pop();
     let carry = (value & 0x80) != 0;
 
@@ -782,7 +782,7 @@ pub fn rol_impl(cpu: &mut CPU, ctx: &mut Context) {
 /// Zero Page,X  | 0x76   | 2     | 6
 /// Absolute     | 0x6E   | 3     | 6
 /// Absolute,X   | 0x7E   | 3     | 7
-pub fn ror_impl(cpu: &mut CPU, ctx: &mut Context) {
+pub fn ror_impl(cpu: &mut Cpu, ctx: &mut Context) {
     let value = ctx.pop();
     let carry = (value & 0x1) != 0;
 
@@ -804,7 +804,7 @@ pub fn ror_impl(cpu: &mut CPU, ctx: &mut Context) {
 /// address mode | opcode | bytes | cycles
 /// -------------+--------+-------+-------
 /// Implied      | 0x40   | 1     | 6
-pub fn rti_impl(cpu: &mut CPU, ctx: &mut Context) {
+pub fn rti_impl(cpu: &mut Cpu, ctx: &mut Context) {
     let pch = ctx.pop();
     let pcl = ctx.pop();
 
@@ -822,7 +822,7 @@ pub fn rti_impl(cpu: &mut CPU, ctx: &mut Context) {
 /// address mode | opcode | bytes | cycles
 /// -------------+--------+-------+-------
 /// Implied      | 0x60   | 1     | 6
-pub fn rts_impl(_: &mut CPU, _: &mut Context) {
+pub fn rts_impl(_: &mut Cpu, _: &mut Context) {
     // nothing to do
 }
 
@@ -840,7 +840,7 @@ pub fn rts_impl(_: &mut CPU, _: &mut Context) {
 /// Absolute,Y   | 0xF9   | 3     | 4
 /// (Indirect,X) | 0xE1   | 2     | 6
 /// (Indirect),Y | 0xF1   | 2     | 5
-pub fn sbc_impl(cpu: &mut CPU, ctx: &mut Context) {
+pub fn sbc_impl(cpu: &mut Cpu, ctx: &mut Context) {
     let acc = cpu.registers.acc.get();
     let value = ctx.pop();
 
@@ -861,7 +861,7 @@ pub fn sbc_impl(cpu: &mut CPU, ctx: &mut Context) {
 /// address mode | opcode | bytes | cycles
 /// -------------+--------+-------+-------
 /// Implied      | 0x38   | 1     | 2
-pub fn sec_impl(cpu: &mut CPU, _: &mut Context) {
+pub fn sec_impl(cpu: &mut Cpu, _: &mut Context) {
     cpu.status.replace(cpu.status.with_carry(true));
 }
 
@@ -872,7 +872,7 @@ pub fn sec_impl(cpu: &mut CPU, _: &mut Context) {
 /// address mode | opcode | bytes | cycles
 /// -------------+--------+-------+-------
 /// Implied      | 0xF8   | 1     | 2
-pub fn sed_impl(cpu: &mut CPU, _: &mut Context) {
+pub fn sed_impl(cpu: &mut Cpu, _: &mut Context) {
     cpu.status.replace(cpu.status.with_decimal_mode(true));
 }
 
@@ -883,7 +883,7 @@ pub fn sed_impl(cpu: &mut CPU, _: &mut Context) {
 /// address mode | opcode | bytes | cycles
 /// -------------+--------+-------+-------
 /// Implied      | 0x78   | 1     | 2
-pub fn sei_impl(cpu: &mut CPU, _: &mut Context) {
+pub fn sei_impl(cpu: &mut Cpu, _: &mut Context) {
     cpu.status.replace(cpu.status.with_irq_disable(true));
 }
 
@@ -900,7 +900,7 @@ pub fn sei_impl(cpu: &mut CPU, _: &mut Context) {
 /// Absolute,Y   | 0x99   | 3     | 5
 /// (Indirect,X) | 0x81   | 2     | 6
 /// (Indirect),Y | 0x91   | 2     | 6
-pub fn sta_impl(cpu: &mut CPU, ctx: &mut Context) {
+pub fn sta_impl(cpu: &mut Cpu, ctx: &mut Context) {
     let acc = cpu.registers.acc.get();
     ctx.push(acc);
 }
@@ -914,7 +914,7 @@ pub fn sta_impl(cpu: &mut CPU, ctx: &mut Context) {
 /// Zero Page    | 0x86   | 2     | 3
 /// Zero Page,Y  | 0x96   | 2     | 4
 /// Absolute     | 0x8E   | 3     | 4
-pub fn stx_impl(cpu: &mut CPU, ctx: &mut Context) {
+pub fn stx_impl(cpu: &mut Cpu, ctx: &mut Context) {
     let x = cpu.registers.x.get();
     ctx.push(x);
 }
@@ -928,7 +928,7 @@ pub fn stx_impl(cpu: &mut CPU, ctx: &mut Context) {
 /// Zero Page    | 0x84   | 2     | 3
 /// Zero Page,X  | 0x94   | 2     | 4
 /// Absolute     | 0x8C   | 3     | 4
-pub fn sty_impl(cpu: &mut CPU, ctx: &mut Context) {
+pub fn sty_impl(cpu: &mut Cpu, ctx: &mut Context) {
     let y = cpu.registers.y.get();
     ctx.push(y);
 }
@@ -940,7 +940,7 @@ pub fn sty_impl(cpu: &mut CPU, ctx: &mut Context) {
 /// address mode | opcode | bytes | cycles
 /// -------------+--------+-------+-------
 /// Implied      | 0xAA   | 1     | 2
-pub fn tax_impl(cpu: &mut CPU, _: &mut Context) {
+pub fn tax_impl(cpu: &mut Cpu, _: &mut Context) {
     let acc = cpu.registers.acc.get();
     cpu.registers.x.set(acc);
 }
@@ -952,7 +952,7 @@ pub fn tax_impl(cpu: &mut CPU, _: &mut Context) {
 /// address mode | opcode | bytes | cycles
 /// -------------+--------+-------+-------
 /// Implied      | 0xA8   | 1     | 2
-pub fn tay_impl(cpu: &mut CPU, _: &mut Context) {
+pub fn tay_impl(cpu: &mut Cpu, _: &mut Context) {
     let acc = cpu.registers.acc.get();
     cpu.registers.y.set(acc);
 }
@@ -964,7 +964,7 @@ pub fn tay_impl(cpu: &mut CPU, _: &mut Context) {
 /// address mode | opcode | bytes | cycles
 /// -------------+--------+-------+-------
 /// Implied      | 0xBA   | 1     | 2
-pub fn tsx_impl(cpu: &mut CPU, _: &mut Context) {
+pub fn tsx_impl(cpu: &mut Cpu, _: &mut Context) {
     let sp = cpu.registers.sp.get();
     cpu.registers.x.set(sp);
 }
@@ -976,7 +976,7 @@ pub fn tsx_impl(cpu: &mut CPU, _: &mut Context) {
 /// address mode | opcode | bytes | cycles
 /// -------------+--------+-------+-------
 /// Implied      | 0x8A   | 1     | 2
-pub fn txa_impl(cpu: &mut CPU, _: &mut Context) {
+pub fn txa_impl(cpu: &mut Cpu, _: &mut Context) {
     let sp = cpu.registers.sp.get();
     cpu.registers.acc.set(sp);
 }
@@ -988,7 +988,7 @@ pub fn txa_impl(cpu: &mut CPU, _: &mut Context) {
 /// address mode | opcode | bytes | cycles
 /// -------------+--------+-------+-------
 /// Implied      | 0x9A   | 1     | 2
-pub fn txs_impl(cpu: &mut CPU, _: &mut Context) {
+pub fn txs_impl(cpu: &mut Cpu, _: &mut Context) {
     let x = cpu.registers.x.get();
     cpu.registers.sp.set(x);
 }
@@ -1000,7 +1000,7 @@ pub fn txs_impl(cpu: &mut CPU, _: &mut Context) {
 /// address mode | opcode | bytes | cycles
 /// -------------+--------+-------+-------
 /// Implied      | 0x98   | 1     | 2
-pub fn tya_impl(cpu: &mut CPU, _: &mut Context) {
+pub fn tya_impl(cpu: &mut Cpu, _: &mut Context) {
     let y = cpu.registers.y.get();
     cpu.registers.sp.set(y);
 }

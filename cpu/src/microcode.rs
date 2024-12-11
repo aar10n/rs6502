@@ -1,4 +1,4 @@
-use crate::cpu::CPU;
+use crate::cpu::Cpu;
 use crate::registers::Register;
 use crate::Bus;
 
@@ -86,12 +86,12 @@ pub enum MicroOp {
     /// Adds the contents of the cpu X register to the temp register (0 cycles)
     AddTempX,
 
-    Execute(fn(&mut CPU, &mut Context)),
-    Evaluate(fn(&mut CPU, &mut Context) -> MicroOp),
+    Execute(fn(&mut Cpu, &mut Context)),
+    Evaluate(fn(&mut Cpu, &mut Context) -> MicroOp),
 }
 
 impl MicroOp {
-    pub fn execute(self, cpu: &mut CPU, ctx: &mut Context, bus: &mut dyn Bus) -> u8 {
+    pub fn execute(self, cpu: &mut Cpu, ctx: &mut Context, bus: &mut dyn Bus) -> u8 {
         match self {
             MicroOp::Unimplemented => {
                 panic!("instruction unimplemented");
@@ -229,13 +229,13 @@ pub fn ucode_reset() -> &'static [MicroOp] {
             cpu.status = cpu.status.with_irq_disable(true).with_brk_command(true)
         }),
         MicroOp::Execute(|_, ctx| {
-            let [lo, hi] = CPU::RES_VECTOR.to_le_bytes();
+            let [lo, hi] = Cpu::RES_VECTOR.to_le_bytes();
             ctx.push(lo);
             ctx.push(hi);
         }),
         MicroOp::PopLoadAddress, // load pc low byte
         MicroOp::Execute(|_, ctx| {
-            let [lo, hi] = (CPU::RES_VECTOR + 1).to_le_bytes();
+            let [lo, hi] = (Cpu::RES_VECTOR + 1).to_le_bytes();
             ctx.push(lo);
             ctx.push(hi);
         }),

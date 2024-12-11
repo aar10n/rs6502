@@ -8,5 +8,5 @@ edition = "2021"
 [dependencies]
 intervaltree = "0.2.7"
 
-[dependencies.core]
-path = "../core"
+[dependencies.cpu]
+path = "../cpu"

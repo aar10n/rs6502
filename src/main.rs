@@ -1,25 +1,24 @@
 use std::error::Error;
 use std::fs;
 
-use core::CPU;
+use cpu::Cpu;
 use system::{device::StdoutDevice, Bus, Memory};
 
 fn run() -> Result<(), Box<dyn Error>> {
-    let mut stdout = StdoutDevice::new();
     let mut mem = Memory::new();
-    mem.register_device(&mut stdout);
+    mem.register_device(StdoutDevice::new());
 
     let mut rom = fs::File::open("example/hello.o")?;
     // let mut rom = fs::File::open("example/fib.o")?;
     mem.load_rom(0x1000, &mut rom)?;
-    mem.write(CPU::RES_VECTOR, 0x00);
-    mem.write(CPU::RES_VECTOR + 1, 0x10);
+    mem.write(Cpu::RES_VECTOR, 0x00);
+    mem.write(Cpu::RES_VECTOR + 1, 0x10);
 
     // // set N for fibonacci subroutine
     // let n = 11;
     // mem.write(0x99, n);
 
-    let mut cpu = CPU::new();
+    let mut cpu = Cpu::new();
     cpu.reset(&mut mem);
 
     use std::time::Instant;

@@ -3,7 +3,7 @@ use std::ops::Deref;
 use logos::{Lexer, Logos};
 
 use crate::source::File;
-use crate::source::SourceRef;
+use crate::source::{SourceRef, Span};
 
 pub trait TokenLike<'source>: Sized {
     type Kind: ?Sized + Clone + PartialEq;
@@ -49,7 +49,30 @@ pub struct Token<'source> {
     pub source: SourceRef<'source>,
 }
 
+impl<'source> Token<'source> {
+    pub fn from_raw_token<'a>(token: &'a RawToken<'source>) -> Option<Token<'source>> {
+        if let Some(kind) = TokenKind::from_raw_token(&token.kind) {
+            let source = token.source.clone();
+            Some(Token { kind, source })
+        } else {
+            None
+        }
+    }
+
+    pub fn value(&'source self) -> &'source str {
+        self.source.value()
+    }
+}
+
 impl_TokenLike!(Token, TokenKind);
+
+impl Deref for Token<'_> {
+    type Target = TokenKind;
+
+    fn deref(&self) -> &Self::Target {
+        &self.kind
+    }
+}
 
 #[derive(Clone, Debug, PartialEq)]
 pub enum TokenKind {
@@ -70,14 +93,14 @@ pub enum TokenKind {
 }
 
 impl TokenKind {
-    pub fn from_raw_token<'a>(token: RawTokenKind) -> Option<Self> {
+    pub fn from_raw_token<'a>(token: &RawTokenKind) -> Option<Self> {
         match token {
             RawTokenKind::Directive => Some(Self::Directive),
             RawTokenKind::Identifier => Some(Self::Identifier),
 
-            RawTokenKind::Number(v) => Some(Self::Literal(LitKind::Number(v))),
-            RawTokenKind::Char(v) => Some(Self::Literal(LitKind::Char(v))),
-            RawTokenKind::String(v) => Some(Self::Literal(LitKind::String(v))),
+            RawTokenKind::Number(v) => Some(Self::Literal(LitKind::Number(v.clone()))),
+            RawTokenKind::Char(v) => Some(Self::Literal(LitKind::Char(v.clone()))),
+            RawTokenKind::String(v) => Some(Self::Literal(LitKind::String(v.clone()))),
 
             RawTokenKind::Add => Some(Self::Operator(OpKind::Add)),
             RawTokenKind::Sub => Some(Self::Operator(OpKind::Sub)),
@@ -102,11 +125,51 @@ impl TokenKind {
             _ => None,
         }
     }
+
+    pub fn is_directive(&self) -> bool {
+        matches!(self, TokenKind::Directive)
+    }
+
+    pub fn is_identifier(&self) -> bool {
+        matches!(self, TokenKind::Identifier)
+    }
+
+    pub fn is_literal(&self) -> bool {
+        matches!(self, TokenKind::Literal(_))
+    }
+
+    pub fn is_operator(&self) -> bool {
+        matches!(self, TokenKind::Operator(_))
+    }
+
+    pub fn is_comma(&self) -> bool {
+        matches!(self, TokenKind::Comma)
+    }
+
+    pub fn is_colon(&self) -> bool {
+        matches!(self, TokenKind::Colon)
+    }
+
+    pub fn is_hash(&self) -> bool {
+        matches!(self, TokenKind::Hash)
+    }
+
+    pub fn is_lparen(&self) -> bool {
+        matches!(self, TokenKind::LParen)
+    }
+
+    pub fn is_rparen(&self) -> bool {
+        matches!(self, TokenKind::RParen)
+    }
+
+    pub fn is_newline(&self) -> bool {
+        matches!(self, TokenKind::Newline)
+    }
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum LitKind {
-    Number(u64),
+    Number(u32),
     Char(char),
     String(String),
 }
@@ -190,7 +253,7 @@ pub enum RawTokenKind {
     #[regex(r"0o[0-7]+", conv_oct)] // octal
     #[regex(r"[0-9]+", conv_dec)] // decimal
     #[regex(r"(\$|0x)[a-fA-F0-9]+", conv_hex)] // hex
-    Number(u64),
+    Number(u32),
     #[regex(r"'([[:print:]]|\\[0ntfr])'", conv_char)]
     Char(char),
     #[regex(r#""[^"]*""#, conv_string)]
@@ -309,30 +372,56 @@ impl RawTokenKind {
 }
 
 //
+//
+//
 
-fn conv_bin(lex: &mut Lexer<RawTokenKind>) -> Option<u64> {
+pub mod tokens {
+    use super::*;
+
+    pub fn from_string<'a>(source: &'a str) -> Vec<RawToken<'a>> {
+        let lexer = RawTokenKind::lexer(source);
+        lexer
+            .spanned()
+            .into_iter()
+            .map(|(kind, span)| {
+                let span = Span::from(span);
+                let range: std::ops::Range<usize> = span.into();
+                let source = SourceRef::new(File::empty(), span);
+                RawToken { kind, source }
+            })
+            .collect()
+    }
+
+    pub fn to_string<'a>(tokens: &Vec<RawToken<'a>>) -> String {
+        tokens.iter().map(|t| t.source.value()).collect::<String>()
+    }
+}
+
+//
+
+fn conv_bin(lex: &mut Lexer<RawTokenKind>) -> Option<u32> {
     // ex. 0b111
     let slice = lex.slice();
-    return u64::from_str_radix(&slice[2..slice.len()], 2).ok();
+    return u32::from_str_radix(&slice[2..slice.len()], 2).ok();
 }
 
-fn conv_oct(lex: &mut Lexer<RawTokenKind>) -> Option<u64> {
+fn conv_oct(lex: &mut Lexer<RawTokenKind>) -> Option<u32> {
     // ex. 0o123
     let slice = lex.slice();
-    return u64::from_str_radix(&slice[2..slice.len()], 8).ok();
+    return u32::from_str_radix(&slice[2..slice.len()], 8).ok();
 }
 
-fn conv_dec(lex: &mut Lexer<RawTokenKind>) -> Option<u64> {
+fn conv_dec(lex: &mut Lexer<RawTokenKind>) -> Option<u32> {
     // ex. 123
     let slice = lex.slice();
-    return u64::from_str_radix(slice, 10).ok();
+    return u32::from_str_radix(slice, 10).ok();
 }
 
-fn conv_hex(lex: &mut Lexer<RawTokenKind>) -> Option<u64> {
+fn conv_hex(lex: &mut Lexer<RawTokenKind>) -> Option<u32> {
     // ex. 0xABC or $ABC
     let slice = lex.slice();
     let start_char = if slice.starts_with("$") { 1 } else { 2 };
-    return u64::from_str_radix(&slice[start_char..], 16).ok();
+    return u32::from_str_radix(&slice[start_char..], 16).ok();
 }
 
 fn conv_char(lex: &mut Lexer<RawTokenKind>) -> Option<char> {

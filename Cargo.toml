@@ -11,7 +11,9 @@ num-traits = "0.2"
 intervaltree = "0.2.7"
 
 [workspace]
-[dependencies.core]
-path = "core"
+[dependencies.asm]
+path = "asm"
+[dependencies.cpu]
+path = "cpu"
 [dependencies.system]
 path = "system"

@@ -5,7 +5,7 @@ mod opcode;
 mod registers;
 mod utility;
 
-pub use cpu::CPU;
+pub use cpu::Cpu;
 
 pub trait Bus {
     fn read<'a>(&'a self, address: u16) -> u8;

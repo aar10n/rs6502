@@ -332,32 +332,6 @@ impl std::fmt::Display for LineColumn {
 //
 //
 
-pub mod tokens {
-    use super::*;
-
-    pub fn from_string<'a>(source: &'a str) -> Vec<RawToken<'a>> {
-        let lexer = RawTokenKind::lexer(source);
-        lexer
-            .spanned()
-            .into_iter()
-            .map(|(kind, span)| {
-                let span = Span::from(span);
-                let range: ops::Range<usize> = span.into();
-                let source = SourceRef::new(File::empty(), span);
-                RawToken { kind, source }
-            })
-            .collect()
-    }
-
-    pub fn to_string<'a>(tokens: &Vec<RawToken<'a>>) -> String {
-        tokens.iter().map(|t| t.source.value()).collect::<String>()
-    }
-}
-
-//
-//
-//
-
 /// A copy-on-write string.
 #[derive(Clone, PartialEq, Eq, Hash)]
 pub struct StrRef<'a>(Cow<'a, str>);

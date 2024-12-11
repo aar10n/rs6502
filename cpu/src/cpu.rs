@@ -4,7 +4,7 @@ use crate::registers::{Registers, StatusFlags};
 use crate::utility;
 use crate::Bus;
 
-pub struct CPU {
+pub struct Cpu {
     pub registers: Registers,
     pub status: StatusFlags,
     pub pins: Pins,
@@ -15,7 +15,7 @@ pub struct CPU {
     pipeline: Option<&'static [MicroOp]>,
 }
 
-impl CPU {
+impl Cpu {
     pub const NMI_VECTOR: u16 = 0xFFFA;
     pub const RES_VECTOR: u16 = 0xFFFC;
     pub const IRQ_VECTOR: u16 = 0xFFFE;
@@ -112,7 +112,7 @@ impl CPU {
     }
 }
 
-impl std::fmt::Debug for CPU {
+impl std::fmt::Debug for Cpu {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         return write!(
             f,

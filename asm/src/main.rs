@@ -1,15 +1,17 @@
 mod assembler;
 mod error;
-mod opcode;
+mod instruction;
 mod preprocessor;
 mod source;
 mod token;
+mod utils;
 
 use colored::*;
 use indoc::indoc;
 
 use crate::preprocessor::preprocess;
-use crate::source::{tokens, File, SourceMap};
+use crate::source::{File, SourceMap};
+use crate::token::tokens;
 
 static SOURCE: &str = indoc! {"
 %define STACK $0100

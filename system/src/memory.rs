@@ -4,7 +4,7 @@ use std::io::Read;
 use std::ops::Range;
 use std::{cell::RefCell, iter::FromIterator, rc::Rc};
 
-use core::Bus;
+use cpu::Bus;
 use intervaltree::{Element, IntervalTree};
 
 use crate::device::Device;
@@ -14,13 +14,13 @@ type RcRefBox<T> = Rc<RefCell<Box<T>>>;
 pub struct Memory<'a> {
     size: usize,
     data: Vec<u8>,
-    devices: Vec<(Range<u16>, RcRefBox<&'a mut (dyn Device + 'a)>)>,
-    mapped: IntervalTree<u16, RcRefBox<&'a mut (dyn Device + 'a)>>,
+    devices: Vec<(Range<u16>, RcRefBox<dyn Device + 'a>)>,
+    mapped: IntervalTree<u16, RcRefBox<dyn Device + 'a>>,
 }
 
 impl<'a> Memory<'a> {
     pub fn new() -> Self {
-        let iter = std::iter::empty::<Element<u16, RcRefBox<&mut dyn Device>>>();
+        let iter = std::iter::empty::<Element<u16, RcRefBox<dyn Device>>>();
         let size = usize::from(u16::MAX);
         Self {
             size,
@@ -48,7 +48,7 @@ impl<'a> Memory<'a> {
         return Ok(());
     }
 
-    pub fn register_device(&mut self, device: &'a mut (impl Device + 'a)) {
+    pub fn register_device(&mut self, device: impl Device + 'a) {
         // device.get_range()
 
         let iter = self.mapped.query(device.get_range().into());
@@ -67,7 +67,7 @@ impl<'a> Memory<'a> {
 
     //
 
-    fn get_device_or_none(&self, address: u16) -> Option<RcRefBox<&'a mut (dyn Device + 'a)>> {
+    fn get_device_or_none(&self, address: u16) -> Option<RcRefBox<dyn Device + 'a>> {
         let range = Range {
             start: address,
             end: address + 1,

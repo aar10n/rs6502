@@ -2,7 +2,7 @@ pub mod device;
 mod memory;
 
 pub use crate::memory::Memory;
-pub use core::Bus;
+pub use cpu::Bus;
 
 #[derive(Clone, Copy)]
 pub struct Range {

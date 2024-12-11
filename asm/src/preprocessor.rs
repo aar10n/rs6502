@@ -5,6 +5,7 @@ use crate::{
     error::SyntaxError,
     source::SourceRef,
     token::{RawToken, RawTokenKind, TokenLike},
+    utils::*,
 };
 
 const RECURSION_LIMIT: usize = 10;
@@ -188,10 +189,10 @@ impl<'a> MacroTable<'a> {
 //
 //
 
-pub fn preprocess<'source>(
-    tokens: &'source [RawToken<'source>],
-    predefs: Vec<Macro<'source>>,
-) -> Result<Vec<RawToken<'source>>, SyntaxError> {
+pub fn preprocess<'a>(
+    tokens: &'a [RawToken<'a>],
+    predefs: Vec<Macro<'a>>,
+) -> Result<Vec<RawToken<'a>>, SyntaxError> {
     if tokens.is_empty() {
         return Ok(vec![]);
     }
@@ -377,7 +378,7 @@ fn preprocess_define_func<'f, 'a>(
     // parse definition
     skip_whitespace(tokens);
     let def = take_while(tokens, is_not_eol);
-    take_one(tokens); // consume ending newline
+    skip_eol(tokens);
 
     let def = def
         .iter()
@@ -419,7 +420,6 @@ fn expand_macro<'f, 'a, 'b>(
     'outer: while let Some(temp) = working.last().map(|v| Rc::clone(v)) {
         if working.len() > RECURSION_LIMIT {
             let loc = token.source.start_loc();
-            println!("loc -> {:?}", loc);
             let reason = format!(
                 "recursion limit reached during expansion of macro '{}'",
                 name
@@ -610,43 +610,12 @@ fn is_not_eol<'f, 'a>(token: &'f RawToken<'a>) -> bool {
     !(token.is_comment() || token.is_newline())
 }
 
-fn take_one<'f, 'a, 'b>(tokens: &'f mut &'b [RawToken<'a>]) -> Option<&'b RawToken<'a>> {
-    if let Some(token) = tokens.first() {
-        *tokens = &tokens[1..];
-        Some(token)
+fn skip_eol<'f, 'a>(tokens: &'f mut &'a [RawToken]) {
+    if let Some(_) = take_if(tokens, |t| t.is_comment()) {
+        take_if(tokens, |t| t.is_newline());
     } else {
-        None
+        take_if(tokens, |t| t.is_newline());
     }
-}
-
-fn take_if<'f, 'a, 'b, F>(tokens: &'f mut &'b [RawToken<'a>], pred: F) -> Option<&'b RawToken<'a>>
-where
-    F: Fn(&RawToken<'a>) -> bool,
-{
-    if let Some(token) = tokens.first() {
-        if pred(token) {
-            *tokens = &tokens[1..];
-            return Some(token);
-        }
-    }
-    None
-}
-
-fn take_while<'f, 'a, 'b, F>(tokens: &'f mut &'b [RawToken<'a>], mut pred: F) -> &'b [RawToken<'a>]
-where
-    F: FnMut(&'b RawToken<'a>) -> bool,
-{
-    let mut index = 0;
-    while let Some(token) = tokens[index..].first() {
-        if !pred(&token) {
-            break;
-        }
-        index += 1;
-    }
-
-    let res = &tokens[..index];
-    *tokens = &tokens[index..];
-    res
 }
 
 fn skip_whitespace<'f, 'a, 'b>(rest: &'f mut &'b [RawToken<'a>]) -> Option<&'b RawToken<'a>> {
@@ -659,12 +628,4 @@ fn skip_whitespace<'f, 'a, 'b>(rest: &'f mut &'b [RawToken<'a>]) -> Option<&'b R
         *rest = &rest[1..];
     }
     prev
-}
-
-fn skip_eol<'f, 'a>(tokens: &'f mut &'a [RawToken]) {
-    if let Some(_) = take_if(tokens, |t| t.is_comment()) {
-        take_if(tokens, |t| t.is_newline());
-    } else {
-        take_if(tokens, |t| t.is_newline());
-    }
 }
